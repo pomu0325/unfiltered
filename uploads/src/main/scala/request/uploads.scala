@@ -93,10 +93,9 @@ object MultiPartParams {
       }
       /** attempt to extract the first named file from the stream */
       def extractFile(name: String): Seq[StreamedFileWrapper] = {
-         items.find(f => f.getFieldName == name && !f.isFormField) match {
-           case Some(f) => Seq(new StreamedFileWrapper(f))
-           case _ => Nil
-         }
+         items.filter(f => f.getFieldName == name && !f.isFormField).map{
+           new StreamedFileWrapper(_)
+         }.toSeq
       }
       MultipartData(extractParam _,extractFile _)
     }

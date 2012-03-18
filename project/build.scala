@@ -100,7 +100,8 @@ object Unfiltered extends Build {
             )) aggregate(
             library, filters, filtersAsync , uploads, util, jetty,
             jettyAjpProject, netty, nettyServer, json, specHelpers,
-            scalaTestHelpers, websockets, oauth, agents)
+            scalaTestHelpers, websockets, oauth,  mac,
+            oauth2, agents)
 
   lazy val library: Project =
     module("unfiltered")(
@@ -283,4 +284,30 @@ object Unfiltered extends Build {
           Seq(dispatchOAuthDep) ++
           integrationTestDeps(v))
       )) dependsOn(jetty, filters)
+
+  lazy val mac =
+    module("mac")(
+      settings = Seq(
+        name := "Unfiltered MAC",
+        unmanagedClasspath in (local("mac"), Test) <++=
+          (fullClasspath in (local("spec"), Compile),
+          fullClasspath in (local("filter"), Compile)) map { (s, f) =>
+            s ++ f
+          },
+        libraryDependencies <++= scalaVersion(v =>
+          Seq(dispatchOAuthDep) ++ integrationTestDeps(v))
+      )) dependsOn(library)
+
+  lazy val oauth2 =
+    module("oauth2")(
+      settings = Seq(
+        name := "Unfiltered OAuth2",
+        unmanagedClasspath in (local("oauth2"), Test) <++=
+          (fullClasspath in (local("spec"), Compile),
+          fullClasspath in (local("filter"), Compile)) map { (s, f) =>
+            s ++ f
+          },
+        libraryDependencies <++= scalaVersion(v =>
+          Seq(dispatchOAuthDep) ++ integrationTestDeps(v))
+      )) dependsOn(jetty, filters, mac)
 }
