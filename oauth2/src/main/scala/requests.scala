@@ -28,9 +28,9 @@ case class AuthorizationCodeRequest[T](
 ) extends AuthorizationRequest
 
 /**
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.1
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-2.3
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-3.1.2
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-25#section-4.1.1
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-25#section-2.3
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-25#section-3.1.2
  */
 case class ImplicitAuthorizationRequest[T](
   req: Req[T],
@@ -51,13 +51,11 @@ case class IndeterminateAuthorizationRequest[T](
 ) extends AuthorizationRequest
 
 /**
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.3
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-25#section-4.1.3
  */
 case class AccessTokenRequest(
   code: String,
-  redirectURI: String,
-  clientId: String,
-  clientSecret:String
+  redirectURI: String
 ) extends AccessRequest
 
 /**

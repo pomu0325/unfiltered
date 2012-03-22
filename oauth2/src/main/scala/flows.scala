@@ -16,8 +16,7 @@ trait AuthCodeFlow {
     state: Option[String]): ResponseFunction[Any]
 
   def onGrantAuthCode(
-    code: String, redirectUri: String,
-    clientId: String, clientSecret: String): ResponseFunction[Any]
+    code: String, redirectUri: String): ResponseFunction[Any]
 }
 
 trait TokenFlow {

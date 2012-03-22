@@ -93,7 +93,7 @@ object AuthorizationSpec
        new URI(head("Location").head).getFragment match {
          case ErrorQueryString(err, desc) =>
             err must_==("invalid_request")
-            URLDecoder.decode(desc, "utf-8") must_==("client_id is required")
+            URLDecoder.decode(desc, "utf-8")  must include("client_id is required")
          case uri => fail("invalid redirect %s" format uri)
        }
     }
@@ -162,7 +162,7 @@ object AuthorizationSpec
        ) >+ { r => (r >:> { h => h }, r as_str ) })
        json(body) { map =>
          map must havePair("error", "invalid_request")
-         map must havePair("error_description", "client_id is required")
+         map.get("error_description") must beSome.which(_.toString.contains("client_id is required"))
        }
     }
     "not redirect to an unknown client" in {
@@ -188,7 +188,7 @@ object AuthorizationSpec
        ) >+ { r => (r >:> { h => r }, r as_str ) })
        json(body) { map =>
          map must havePair("error", "invalid_request")
-         map must havePair("error_description", "client_secret is required")
+         map.get("error_description") must beSome.which(_.toString.contains("client_secret is required"))
        }
     }
     "accept our mock client" in {
@@ -242,7 +242,7 @@ object AuthorizationSpec
        ) >+ { r => (r >:> { h => h }, r as_str ) })
        json(body) { map =>
          map must havePair("error", "invalid_request")
-         map must havePair("error_description", "username is required and password is required")
+         map.get("error_description") must beSome.which(_.toString.contains("username is required and password is required"))
        }
     }
     "require a password" in {
@@ -254,7 +254,7 @@ object AuthorizationSpec
        ) >+ { r => (r >:> { h => r }, r as_str ) })
        json(body) { map =>
          map must havePair("error", "invalid_request")
-         map must havePair("error_description", "username is required and password is required")
+         map.get("error_description") must beSome.which(_.toString.contains("username is required and password is required"))
        }
     }
     "require a client_id" in {
@@ -264,7 +264,7 @@ object AuthorizationSpec
        ) >+ { r => (r >:> { h => h }, r as_str ) })
        json(body) { map =>
          map must havePair("error", "invalid_request")
-         map must havePair("error_description", "client_id is required")
+         map.get("error_description") must beSome.which(_.toString.contains("client_id is required"))
        }
     }
     "require a client_secret" in {
@@ -274,7 +274,7 @@ object AuthorizationSpec
        ) >+ { r => (r >:> { h => r }, r as_str ) })
        json(body) { map =>
          map must havePair("error", "invalid_request")
-         map must havePair("error_description", "client_secret is required")
+         map.get("error_description") must beSome.which(_.toString.contains("client_secret is required"))
        }
     }
     "accept our mock user's password credentials" in {
@@ -333,7 +333,7 @@ object AuthorizationSpec
        uri.getQuery match {
         case ErrorQueryString(err, desc) =>
           err must_==("invalid_request")
-          URLDecoder.decode(desc, "utf-8") must_=="client_id is required"
+          URLDecoder.decode(desc, "utf-8") must include("client_id is required")
         case _ => fail("invalid redirect %s" format uri)
       }
     }
@@ -385,10 +385,9 @@ object AuthorizationSpec
          case Code(code) =>
            val req = token << Map(
                "grant_type" -> "authorization_code",
-               "client_id" -> client.id,
                "redirect_uri" -> client.redirectUri,
                "code" -> code
-             ) as_!(client.id, client.secret)
+             )
 
            // requesting access token
            val (header, ares) =

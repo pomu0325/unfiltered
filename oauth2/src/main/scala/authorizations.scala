@@ -225,8 +225,8 @@ trait Authorized extends AuthorizationProvider
           errorResponder(error, desc, euri, state)
       }
 
-  def onGrantAuthCode(code: String, redirectUri: String, clientId: String, clientSecret: String) =
-     auth(AccessTokenRequest(code, redirectUri, clientId, clientSecret)) match {
+  def onGrantAuthCode(code: String, redirectUri: String) =
+     auth(AccessTokenRequest(code, redirectUri)) match {
        case AccessTokenResponse(
          accessToken, tokenType, expiresIn, refreshToken, scope, _, extras) =>
            accessResponder(
@@ -290,11 +290,11 @@ trait Authorized extends AuthorizationProvider
       val expected = for {
         grantType     <- lookup(GrantType) is required(requiredMsg(GrantType))
         code          <- lookup(Code) is optional[String, String]
-        clientId      <- lookup(ClientId) is required(requiredMsg(ClientId))
+        clientId      <- lookup(ClientId) is optional[String, String]
         redirectURI   <- lookup(RedirectURI) is optional[String, String]
         // clientSecret is not recommended to be passed as a parameter by instead
         // encoded in a basic auth header http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-3.1
-        clientSecret  <- lookup(ClientSecret) is required(requiredMsg(ClientSecret))
+        clientSecret  <- lookup(ClientSecret) is optional[String, String]
         refreshToken  <- lookup(RefreshToken) is optional[String, String]
         scope         <- lookup(Scope) is watch(_.map(spaceDecoder), e => "")
         userName      <- lookup(Username) is optional[String, String]
@@ -304,31 +304,40 @@ trait Authorized extends AuthorizationProvider
         grantType.get match {
 
           case ClientCredentials =>
-            onClientCredentials(clientId.get, clientSecret.get, scope.getOrElse(Nil))
+            (clientId.get, clientSecret.get) match {
+              case (Some(cid), Some(cs)) =>
+                onClientCredentials(cid, cs, scope.getOrElse(Nil))
+              case _ => 
+                errorResponder(
+                  InvalidRequest,
+                  (requiredMsg(ClientId) :: requiredMsg(ClientSecret) :: Nil).mkString(" and "),
+                  auth.errUri(InvalidRequest), None
+                )
+            }
 
           case Password =>
-            (userName.get, password.get) match {
-              case (Some(u), Some(pw)) =>
-                onPassword(u, pw, clientId.get, clientSecret.get, scope.getOrElse(Nil))
+            (userName.get, password.get, clientId.get, clientSecret.get) match {
+              case (Some(u), Some(pw), Some(cid), Some(cs)) =>
+                onPassword(u, pw, cid, cs, scope.getOrElse(Nil))
               case _ =>
                 errorResponder(
                   InvalidRequest,
-                  (requiredMsg(Username) :: requiredMsg(Password) :: Nil).mkString(" and "),
+                  (requiredMsg(Username) :: requiredMsg(Password) :: requiredMsg(ClientId) :: requiredMsg(ClientSecret) :: Nil).mkString(" and "),
                   auth.errUri(InvalidRequest), None
                 )
             }
 
           case RefreshToken =>
-            refreshToken.get match {
-              case Some(rtoken) =>
-                onRefresh(rtoken, clientId.get, clientSecret.get, scope.getOrElse(Nil))
-              case _ => errorResponder(InvalidRequest, requiredMsg(RefreshToken), None, None)
+            (refreshToken.get, clientId.get, clientSecret.get) match {
+              case (Some(rtoken), Some(cid), Some(cs)) =>
+                onRefresh(rtoken, cid, cs, scope.getOrElse(Nil))
+              case _ => errorResponder(InvalidRequest, (requiredMsg(RefreshToken) :: requiredMsg(ClientId) :: requiredMsg(ClientSecret) :: Nil).mkString(" and "), None, None)
             }
 
           case AuthorizationCode =>
             (code.get, redirectURI.get) match {
               case (Some(c), Some(r)) =>
-                onGrantAuthCode(c, r, clientId.get, clientSecret.get)
+                onGrantAuthCode(c, r)
               case _ =>
                 errorResponder(
                   InvalidRequest,

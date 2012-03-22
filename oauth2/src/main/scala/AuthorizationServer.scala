@@ -103,34 +103,24 @@ trait AuthorizationServer {
 
   def apply(r: AccessRequest): AccessResponse = r match {
 
-    case AccessTokenRequest(code, redirectUri, clientId, clientSecret) =>
-      client(clientId, Some(clientSecret)) match {
-        case Some(client) =>
-          if(!validRedirectUri(redirectUri, client)) ErrorResponse(
-            InvalidClient, "invalid redirect uri", None, None
-          )
-          else  {
-            token(code) match {
-              case Some(token) =>
-                // tokens redirectUri must be exact match to the one provided
-                // in order further bind the access request to the auth request
-                if(token.clientId != client.id || token.redirectUri != redirectUri)
-                  ErrorResponse(
-                    UnauthorizedClient, "client not authorized", errorUri(UnauthorizedClient), None
-                  )
-                else {
-                  val t = exchangeAuthorizationCode(token)
-                  AccessTokenResponse(
-                    t.value, t.tokenType, t.expiresIn, t.refresh, Nil, None, t.extras
-                 )
-                }
-              case _ => ErrorResponse(
-                InvalidRequest, "unknown code", None, None
-              )
-            }
+    case AccessTokenRequest(code, redirectUri) =>
+      token(code) match {
+        case Some(token) =>
+          // tokens redirectUri must be exact match to the one provided
+          // in order further bind the access request to the auth request
+          if(token.redirectUri != redirectUri)
+            ErrorResponse(
+              UnauthorizedClient, "client not authorized", errorUri(UnauthorizedClient), None
+            )
+          else {
+            val t = exchangeAuthorizationCode(token)
+            AccessTokenResponse(
+              t.value, t.tokenType, t.expiresIn, t.refresh, Nil, None, t.extras
+           )
           }
         case _ => ErrorResponse(
-          InvalidRequest, UnknownClientMsg, errorUri(InvalidRequest), None)
+          InvalidRequest, "unknown code", None, None
+        )
       }
 
     case RefreshTokenRequest(rToken, clientId, clientSecret, scope) =>
